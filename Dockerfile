@@ -4,18 +4,21 @@ FROM python:3.9-slim
 # Set the working directory in the container
 WORKDIR /app
 
-# Copy the current directory contents into the container at /app
-COPY . /app
+# Install required packages for system
+RUN apt-get update \
+    && apt-get upgrade -y \
+    && apt-get install -y gcc default-libmysqlclient-dev pkg-config \
+    && rm -rf /var/lib/apt/lists/*
 
-# Install the dependencies
+# Copy the requirements file into the container
+COPY requirements.txt .
+
+# Install app dependencies
+RUN pip install mysqlclient
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Expose the port the app runs on
-EXPOSE 5000
+# Copy the rest of the application code
+COPY . .
 
-# Set environment variables for Flask app
-ENV FLASK_APP=app.py
-ENV FLASK_RUN_HOST=0.0.0.0
-
-# Run the application
-CMD ["flask", "run"]
+# Specify the command to run your application
+CMD ["python", "app.py"]
