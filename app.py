@@ -1,51 +1,33 @@
-
 from flask import Flask, jsonify
-import sqlite3
-import os
+import mysql.connector
 
 app = Flask(__name__)
 
-# SQLite Database connection function
-def get_db_connection():
-    conn = sqlite3.connect('database.db')
-    conn.row_factory = sqlite3.Row
-    return conn
+# Database configuration
+db_config = {
+    "host": "db",  # Docker service name for the database
+    "user": "root",
+    "password": "rootpassword",
+    "database": "testdb"
+}
 
-# Initialize the database if not exists
-def init_db():
-    if not os.path.exists('database.db'):
-        conn = sqlite3.connect('database.db')
-        c = conn.cursor()
-
-        # Create a 'users' table
-        c.execute('''
-        CREATE TABLE IF NOT EXISTS users (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT NOT NULL
-        )
-        ''')
-
-        # Insert some example data
-        c.execute('INSERT INTO users (name) VALUES ("Alice")')
-        c.execute('INSERT INTO users (name) VALUES ("Bob")')
-
-        conn.commit()
-        conn.close()
-
-# Home route
 @app.route('/')
 def home():
-    return "Welcome to the Two-Tier Flask App!"
+    return "Welcome to the Two-Tier Flask Application!"
 
-# Fetch data from the database route
 @app.route('/data')
 def get_data():
-    conn = get_db_connection()
-    data = conn.execute('SELECT * FROM users').fetchall()
-    conn.close()
-    
-    return jsonify([dict(row) for row in data])
+    try:
+        connection = mysql.connector.connect(**db_config)
+        cursor = connection.cursor()
+        cursor.execute("SELECT message FROM messages")
+        result = cursor.fetchall()
+        return jsonify(result)
+    except mysql.connector.Error as err:
+        return f"Error: {err}"
+    finally:
+        if connection:
+            connection.close()
 
 if __name__ == '__main__':
-    init_db()  # Call the function to initialize the database
-    app.run(debug=True)
+    app.run(host='0.0.0.0', port=5000)
