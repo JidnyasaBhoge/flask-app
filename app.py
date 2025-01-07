@@ -1,21 +1,26 @@
 from flask import Flask, jsonify
+import os
+import MySQLdb
 
 app = Flask(__name__)
 
-@app.route('/')
-def hello_world():
-    """
-    A simple route that returns a 'Hello, World!' message.
-    """
-    return jsonify(message="Hello, World!")
+def get_db_connection():
+    conn = MySQLdb.connect(
+        host=os.getenv('MYSQL_HOST', 'localhost'),
+        user=os.getenv('MYSQL_USER', 'root'),
+        password=os.getenv('MYSQL_PASSWORD', 'root'),
+        database=os.getenv('MYSQL_DB', 'devops')
+    )
+    return conn
 
-@app.route('/status')
-def status():
-    """
-    A simple status endpoint to check if the app is running.
-    """
-    return jsonify(status="Running")
+@app.route('/')
+def home():
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('SELECT * FROM users')
+    users = cursor.fetchall()
+    conn.close()
+    return jsonify(users)
 
 if __name__ == '__main__':
-    # Run the app on port 5000 and make it accessible externally
-    app.run(host='0.0.0.0', port=5000)
+    app.run(debug=True, host='0.0.0.0', port=5000)
